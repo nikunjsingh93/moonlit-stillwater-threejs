@@ -723,6 +723,101 @@ function numberPlate(text) {
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 const dynMats = {};
+function makeCageTexture() {
+  const s = 128, cv = document.createElement('canvas'); cv.width = cv.height = s;
+  const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, s, s);
+  ctx.strokeStyle = 'rgba(30,32,34,0.95)'; ctx.lineWidth = 3;
+  for (let i = 0; i <= s; i += 16) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(s, i); ctx.stroke();
+  }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 2); return t;
+}
+// Everglades airboat: flat hull, benches, elevated engine, caged 3-blade prop,
+// twin rudders in the wash. Bow points +X like the cruiser.
+function buildAirboat() {
+  const g = new THREE.Group();
+  const refs = { rudders: [] };
+  const alum = new THREE.MeshStandardMaterial({ color: 0x77716a, roughness: 0.45, metalness: 0.65 });
+  const darkM = new THREE.MeshStandardMaterial({ color: 0x1c1c1e, roughness: 0.9 });
+  const seatM = new THREE.MeshStandardMaterial({ color: 0x243024, roughness: 0.95 });
+  const hullGeo = new THREE.BoxGeometry(5.6, 0.7, 2.5, 6, 1, 1);
+  const p = hullGeo.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i);
+    if (x > 0.8) { const k = THREE.MathUtils.lerp(1, 0.55, (x - 0.8) / 2.0); p.setZ(i, p.getZ(i) * k); p.setY(i, p.getY(i) + (x - 0.8) * 0.18); }
+  }
+  hullGeo.computeVertexNormals();
+  const hull = new THREE.Mesh(hullGeo, alum); hull.position.y = 0.15; g.add(hull);
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.08, 2.1), darkM);
+  deck.position.set(0.2, 0.54, 0); g.add(deck);
+  for (const s of [-1, 1]) {
+    for (let i = 0; i < 4; i++) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.6, 5), darkM);
+      post.position.set(0.6 + i * 0.5, 0.85, s * 0.95); g.add(post);
+    }
+    const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.0, 5), darkM);
+    rail.rotation.z = Math.PI / 2; rail.position.set(1.35, 1.15, s * 0.95); g.add(rail);
+  }
+  for (const bx of [0.5, -0.7]) {
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.12, 1.7), seatM);
+    seat.position.set(bx, 0.95, 0); g.add(seat);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.55, 1.7), seatM);
+    back.position.set(bx - 0.3, 1.2, 0); g.add(back);
+    for (const s of [-1, 1]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.08), darkM);
+      leg.position.set(bx, 0.72, s * 0.7); g.add(leg);
+    }
+  }
+  for (const sx of [-1.9, -2.5]) for (const s of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.6, 5), darkM);
+    leg.position.set(sx, 1.3, s * 0.6); leg.rotation.z = sx < -2 ? -0.25 : 0.25; g.add(leg);
+  }
+  const block = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.9), darkM);
+  block.position.set(-2.2, 1.9, 0); g.add(block);
+  for (const s of [-1, 1]) {
+    const ex = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6), alum);
+    ex.rotation.z = Math.PI / 2.4; ex.position.set(-2.5, 1.6, s * 0.5); g.add(ex);
+  }
+  const prop = new THREE.Group(); prop.position.set(-2.55, 2.35, 0);
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.25, 8), darkM);
+  hub.rotation.z = Math.PI / 2; prop.add(hub);
+  const bladeM = new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.5 });
+  for (let k = 0; k < 3; k++) {
+    const holder = new THREE.Group(); holder.rotation.x = (k / 3) * Math.PI * 2;
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.15, 0.30), bladeM);
+    blade.position.y = 0.72; blade.rotation.y = 0.35; holder.add(blade); prop.add(holder);
+  }
+  g.add(prop); refs.prop = prop;
+  const discM = new THREE.MeshBasicMaterial({ color: 0x9aa2a8, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(1.32, 24), discM);
+  disc.rotation.y = Math.PI / 2; disc.position.copy(prop.position); g.add(disc);
+  refs.disc = discM;
+  for (const cxr of [-2.0, -3.1]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.035, 6, 28), darkM);
+    ring.rotation.y = Math.PI / 2; ring.position.set(cxr, 2.35, 0); g.add(ring);
+  }
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2;
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.15, 4), darkM);
+    bar.rotation.z = Math.PI / 2;
+    bar.position.set(-2.55, 2.35 + Math.cos(a) * 1.5, Math.sin(a) * 1.5);
+    g.add(bar);
+  }
+  const shell = new THREE.Mesh(new THREE.CylinderGeometry(1.52, 1.52, 1.15, 14, 1, true),
+    new THREE.MeshBasicMaterial({ map: makeCageTexture(), transparent: true, side: THREE.DoubleSide, depthWrite: false, color: 0x888888 }));
+  shell.rotation.z = Math.PI / 2; shell.position.set(-2.55, 2.35, 0); g.add(shell);
+  for (const s of [-1, 1]) {
+    const rud = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.0, 0.7),
+      new THREE.MeshStandardMaterial({ color: 0x3a3f45, roughness: 0.7, metalness: 0.4 }));
+    rud.position.set(-3.35, 2.2, s * 0.55); g.add(rud); refs.rudders.push(rud);
+  }
+  const bow = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6),
+    new THREE.MeshStandardMaterial({ color: 0x444422, emissive: 0xffe9a8, emissiveIntensity: 2.0 }));
+  bow.position.set(2.5, 1.0, 0); g.add(bow);
+  return { group: g, refs };
+}
 const boat = new THREE.Group();
 {
   const hullMat = new THREE.MeshStandardMaterial({ color: 0x2e4a48, roughness: 0.65, metalness: 0.15 });
@@ -809,10 +904,10 @@ const boat = new THREE.Group();
   }
   // "86" plates
   const plate = numberPlate('18');
-  const plateMat = new THREE.MeshStandardMaterial({ map: plate, roughness: 0.8 });
+  const plateMat = new THREE.MeshStandardMaterial({ map: plate, roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -2 });
   for (const s of [-1, 1]) {
     const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.45), plateMat);
-    pl.position.set(-1.6, 0.15, s * 1.03); if (s < 0) pl.rotation.y = Math.PI; boat.add(pl);
+    pl.position.set(-1.6, 0.15, s * 1.08); if (s < 0) pl.rotation.y = Math.PI; boat.add(pl);
   }
   // bow lamp post
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.3, 6), darkMat);
@@ -832,6 +927,22 @@ const boat = new THREE.Group();
   dynMats.headSpot = headSpot;
 }
 scene.add(boat);
+// cruiser vs airboat: both ride the same physics transform, toggle visibility
+let airboatMode = false;
+const cruiser = new THREE.Group();
+while (boat.children.length) cruiser.add(boat.children[0]);
+boat.add(cruiser);
+const airboat = buildAirboat();
+airboat.group.visible = false;
+boat.add(airboat.group);
+function toggleBoat() {
+  airboatMode = !airboatMode;
+  cruiser.visible = !airboatMode;
+  airboat.group.visible = airboatMode;
+  boatBtn.classList.toggle('on', airboatMode);
+  boatBtn.textContent = airboatMode ? 'cruiser' : 'airboat';
+  MotorAudio.bright = airboatMode;
+}
 
 // ================= fireflies =================
 const FLIES = 240;
@@ -1021,7 +1132,7 @@ composer.addPass(new OutputPass());
 // ================= steady outboard audio: no wobble, stays on while held =================
 const MotorAudio = {
   ctx: null, master: null, motorGain: null, motorOsc1: null, motorOsc2: null,
-  washGain: null, muted: false, throttle: 0, audioAcc: 0, nextCroak: 0, nextChirp: 0,
+  washGain: null, muted: false, bright: false, throttle: 0, audioAcc: 0, nextCroak: 0, nextChirp: 0,
   init() {
     if (this.ctx) return;
     try {
@@ -1076,8 +1187,8 @@ const MotorAudio = {
     if (this.audioAcc > 0.12) {
       this.audioAcc = 0;
       const tc = this.ctx.currentTime;
-      this.motorOsc1.frequency.setTargetAtTime(44 + throttle * 34, tc, 0.25);
-      this.motorOsc2.frequency.setTargetAtTime(88 + throttle * 68, tc, 0.25);
+      this.motorOsc1.frequency.setTargetAtTime((44 + throttle * 34) * (this.bright ? 1.7 : 1), tc, 0.25);
+      this.motorOsc2.frequency.setTargetAtTime((88 + throttle * 68) * (this.bright ? 1.7 : 1), tc, 0.25);
       this.motorGain.gain.setTargetAtTime(0.012 + throttle * 0.075, tc, throttle > 0.02 ? 0.3 : 0.8);
       this.washGain.gain.setTargetAtTime(0.012 + speed01 * 0.05, tc, 0.4);
     }
@@ -1091,12 +1202,15 @@ const MotorAudio = {
 };
 
 // ================= state / input / HUD =================
-const state = { x: -60, z: channelCenter(-60), heading: 0, speed: 0, turn: 0, dist: 0 };
+const state = { x: -60, z: channelCenter(-60), heading: 0, speed: 0, turn: 0, dist: 0, vx: 0, vz: 0 };
+const BOAT_CRUISE = { top: 3.4, rev: -1.5, idle: 0.9, spool: 1.0, turn: 0.35, grip: 9 };
+const BOAT_AIR = { top: 7.5, rev: 0, idle: 1.4, spool: 0.7, turn: 0.55, grip: 1.7 };
 const keys = new Set();
 addEventListener('keydown', (e) => {
   keys.add(e.code);
   if (e.code === 'KeyM') toggleMute();
   if (e.code === 'KeyC') toggleCabin();
+  if (e.code === 'KeyV') { MotorAudio.init(); toggleBoat(); }
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
 const orbit = { yaw: Math.PI, pitch: 0.30, drag: false, lx: 0, ly: 0 };
@@ -1153,6 +1267,8 @@ function toggleCabin() {
   camIdle = 0;
 }
 cabinBtn.onclick = (e) => { e.stopPropagation(); MotorAudio.init(); toggleCabin(); };
+const boatBtn = document.getElementById('boatBtn');
+boatBtn.onclick = (e) => { e.stopPropagation(); MotorAudio.init(); toggleBoat(); };
 function toggleMute() {
   MotorAudio.init();
   MotorAudio.setMuted(!MotorAudio.muted);
@@ -1172,18 +1288,22 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
   const fwd = keys.has('KeyW') || keys.has('ArrowUp'), back = keys.has('KeyS') || keys.has('ArrowDown');
   const left = keys.has('KeyA') || keys.has('ArrowLeft'), right = keys.has('KeyD') || keys.has('ArrowRight');
-  const target = fwd ? 3.4 : back ? -1.5 : 0.9;
-  state.speed = THREE.MathUtils.lerp(state.speed, target, dt * 1.0);
+  const BP = airboatMode ? BOAT_AIR : BOAT_CRUISE;
+  const target = fwd ? BP.top : back ? BP.rev : BP.idle;
+  state.speed = THREE.MathUtils.lerp(state.speed, target, dt * BP.spool);
   state.turn = THREE.MathUtils.lerp(state.turn, (right ? 1 : 0) - (left ? 1 : 0), dt * 2.2);
-  const sf = THREE.MathUtils.clamp(Math.abs(state.speed) / 3.4, 0.15, 1) * Math.sign(state.speed || 1);
-  state.heading += state.turn * dt * 0.35 * sf;
-  const stepX = Math.cos(state.heading) * state.speed * dt;
-  const stepZ = Math.sin(state.heading) * state.speed * dt;
+  const sf = THREE.MathUtils.clamp(Math.abs(state.speed) / BP.top, 0.12, 1) * Math.sign(state.speed || 1);
+  state.heading += state.turn * dt * BP.turn * sf;
+  const dvx = Math.cos(state.heading) * state.speed, dvz = Math.sin(state.heading) * state.speed;
+  const gk = Math.min(1, dt * BP.grip);
+  state.vx += (dvx - state.vx) * gk; state.vz += (dvz - state.vz) * gk;
+  const stepX = state.vx * dt, stepZ = state.vz * dt;
   state.dist += Math.hypot(stepX, stepZ);
   state.x += stepX; // endless: x is unbounded, segments stream in
   const cc = channelCenter(state.x), maxOff = channelHalf(state.x) - 2.2;
-  state.z = THREE.MathUtils.clamp(state.z + stepZ, cc - maxOff, cc + maxOff);
-  if (keys.has('KeyR')) { state.x = -60; state.z = channelCenter(-60); state.heading = 0; state.speed = 0; }
+  const nz = THREE.MathUtils.clamp(state.z + stepZ, cc - maxOff, cc + maxOff);
+  state.vz = dt > 0 ? (nz - state.z) / dt : 0; state.z = nz;
+  if (keys.has('KeyR')) { state.x = -60; state.z = channelCenter(-60); state.heading = 0; state.speed = 0; state.vx = 0; state.vz = 0; }
 
   updateSegments(state.x);
   for (const sg of segCache.values()) {
@@ -1209,6 +1329,13 @@ function animate() {
   stern.position.set(state.x - Math.cos(state.heading) * 1.1, 1.6, state.z - Math.sin(state.heading) * 1.1);
   stern.intensity = 8 * lampLevel * (1 + Math.sin(t * 9.3 + 2.0) * 0.08);
   if (dynMats.headSpot) dynMats.headSpot.intensity = 750 * lampLevel * (1 + Math.sin(t * 13.7) * 0.03);
+  if (airboatMode) {
+    const thr = fwd ? 1 : back ? 0.4 : 0.08;
+    airboat.refs.prop.rotation.x += (2 + thr * 42) * dt;
+    for (const r of airboat.refs.rudders) r.rotation.y = -state.turn * 0.55;
+    airboat.refs.disc.opacity = 0.04 + thr * 0.20;
+    boat.rotation.x += THREE.MathUtils.clamp(Math.abs(state.speed) / BOAT_AIR.top, 0, 1) * 0.045;
+  }
 
   const fx = Math.cos(state.heading), fz = Math.sin(state.heading);
   // ease the camera back to default 7s after the last drag
@@ -1241,7 +1368,7 @@ function animate() {
   waterMat.uniforms.uTime.value = t;
   waterMat.uniforms.uBoat.value.set(state.x, state.z);
   waterMat.uniforms.uBoatDir.value.set(fx, fz);
-  const speed01 = THREE.MathUtils.clamp(Math.abs(state.speed) / 3.4, 0, 1);
+  const speed01 = THREE.MathUtils.clamp(Math.abs(state.speed) / (airboatMode ? BOAT_AIR.top : BOAT_CRUISE.top), 0, 1);
   waterMat.uniforms.uSpeed.value = Math.max(speed01, 0.1);
   waterMat.uniforms.uLampPos.value.copy(lantern.position);
   waterMat.uniforms.uLampLevel.value = lampLevel;
