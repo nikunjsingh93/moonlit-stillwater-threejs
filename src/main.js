@@ -9,8 +9,14 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // ================= endless channel: pure functions of x, valid everywhere =================
-function channelCenter(x) { return 7.5 * Math.sin(x * 0.042) + 4.0 * Math.sin(x * 0.017 + 1.3); }
-function channelHalf(x) { return 10.5 + 3.5 * Math.sin(x * 0.023 + 0.7); }
+function channelCenter(x) {
+  return 7.5 * Math.sin(x * 0.042) + 4.0 * Math.sin(x * 0.017 + 1.3)
+    + 3.0 * Math.sin(x * 0.0075 + 0.5) * Math.sin(x * 0.0021 + 1.0)
+    + 1.1 * Math.sin(x * 0.093 + 0.7);
+}
+function channelHalf(x) {
+  return 10.5 + 3.5 * Math.sin(x * 0.023 + 0.7) + 2.2 * Math.sin(x * 0.009 + 2.0);
+}
 function bankHeight(x, z) {
   const d = Math.abs(z - channelCenter(x));
   const edge = Math.max(0, d - channelHalf(x)) / 22;
@@ -47,10 +53,10 @@ const EVENING = {
 const DAY = {
   fog: new THREE.Color(0x9fb8be), fogDensity: 0.0075,
   zenith: new THREE.Color(0x2f6aa0), horizon: new THREE.Color(0xcfd8d4),
-  moon: new THREE.Color(0xfff6e0), moonLight: new THREE.Color(0xfff2dd), moonI: 2.6,
-  hemiSky: new THREE.Color(0x9db8cc), hemiGnd: new THREE.Color(0x3a4a3a), hemiI: 0.9,
+  moon: new THREE.Color(0xfff6e0), moonLight: new THREE.Color(0xfff2dd), moonI: 3.0,
+  hemiSky: new THREE.Color(0x9db8cc), hemiGnd: new THREE.Color(0x3a4a3a), hemiI: 1.2,
   deep: new THREE.Color(0x0a2a30), sky: new THREE.Color(0x7fa8b8),
-  lantern: new THREE.Color(0xffa860), exposure: 0.95,
+  lantern: new THREE.Color(0xffa860), exposure: 1.0,
   lamp: 0, lampGlass: 0.15, flies: false, mist: 0.07, bloom: 0.18, leafEm: 0.12,
 };
 
@@ -1064,23 +1070,48 @@ scene.add(gnats);
 const gnatSeeds = [];
 { const r = mulberry32(31); for (let i = 0; i < GNATS; i++) gnatSeeds.push([r() * 6.28, 0.3 + r() * 1.2, 0.5 + r() * 1.5, r() * 6.28]); }
 
-// herons/egrets gliding high ahead of the boat
+// herons/egrets: tapered bodies, swept wings, flap-and-glide
 const birds = [];
 {
-  const bodyG = new THREE.BoxGeometry(0.12, 0.12, 0.9);
-  paint(bodyG, 0x22282c, 0.2, mulberry32(41));
-  const wingG = new THREE.PlaneGeometry(1.5, 0.42);
-  wingG.rotateX(-Math.PI / 2);
-  paint(wingG, 0x2c3438, 0.2, mulberry32(42));
-  const bodyM = new THREE.MeshBasicMaterial({ vertexColors: true });
+  const bparts = [];
+  const fus = new THREE.CylinderGeometry(0.05, 0.10, 0.75, 6);
+  fus.rotateX(Math.PI / 2); bparts.push(fus);
+  const head = new THREE.SphereGeometry(0.075, 6, 5);
+  head.translate(0, 0.05, 0.42); bparts.push(head);
+  const beak = new THREE.ConeGeometry(0.03, 0.16, 5);
+  beak.rotateX(Math.PI / 2); beak.translate(0, 0.04, 0.55); bparts.push(beak);
+  const tailfan = new THREE.BoxGeometry(0.20, 0.03, 0.32);
+  tailfan.translate(0, 0.01, -0.5); bparts.push(tailfan);
+  const bodyG = mergeGeometries(bparts.map((g) => paint(g, 0x22282c, 0.25, mulberry32(41))), false);
+  const bodyM = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
+  function gullWing() {
+    const w = new THREE.PlaneGeometry(0.9, 0.36, 3, 1);
+    const pa = w.attributes.position;
+    for (let i = 0; i < pa.count; i++) {
+      const f = Math.abs(pa.getX(i)) / 0.45;
+      pa.setY(i, pa.getY(i) * (1 - f * 0.55));
+    }
+    w.rotateX(-Math.PI / 2);
+    const pb = w.attributes.position;
+    for (let i = 0; i < pb.count; i++) {
+      const f = Math.abs(pb.getX(i)) / 0.45;
+      pb.setZ(i, pb.getZ(i) - f * 0.22);
+    }
+    w.translate(0.45, 0, 0);
+    return paint(w, 0x2c3438, 0.25, mulberry32(42));
+  }
+  const wingR = gullWing();
+  const wingL = wingR.clone(); wingL.rotateY(Math.PI);
+  { const pl = wingL.attributes.position; for (let i = 0; i < pl.count; i++) pl.setZ(i, -pl.getZ(i)); }
   const brng = mulberry32(43);
   for (let i = 0; i < 7; i++) {
     const grp = new THREE.Group();
     grp.add(new THREE.Mesh(bodyG, bodyM));
-    const wings = new THREE.Mesh(wingG, bodyM);
-    grp.add(wings);
+    const wr = new THREE.Mesh(wingR, bodyM);
+    const wl = new THREE.Mesh(wingL, bodyM);
+    grp.add(wr); grp.add(wl);
     scene.add(grp);
-    birds.push({ node: grp, wings, seed: brng() * 100, r: 22 + brng() * 22, h: 11 + brng() * 11, sp: 0.03 + brng() * 0.04 });
+    birds.push({ node: grp, wr, wl, seed: brng() * 100, r: 22 + brng() * 22, h: 11 + brng() * 11, sp: 0.03 + brng() * 0.04 });
   }
 }
 
@@ -1419,7 +1450,9 @@ function animate() {
       b.h + Math.sin(t * 0.5 + b.seed) * 1.5,
       czp + Math.sin(a) * b.r * 0.5);
     b.node.rotation.y = -a;
-    b.wings.rotation.z = Math.sin(t * 9 + b.seed) * 0.45;
+    const glide = 0.12 + 0.55 * Math.max(0, Math.sin(t * 0.4 + b.seed * 2));
+    const flap = Math.sin(t * 9 + b.seed) * glide;
+    b.wr.rotation.z = flap; b.wl.rotation.z = -flap;
   }
   for (const f of butterflies) {
     const a = t * f.sp + f.seed;
