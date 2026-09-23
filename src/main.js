@@ -899,6 +899,8 @@ const boat = new THREE.Group();
   }
   const rearWin = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.45), glassMat);
   rearWin.position.set(-1.96, 1.45, 0); rearWin.rotation.y = -Math.PI / 2; boat.add(rearWin);
+  const rearTrim = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.65), darkMat);
+  rearTrim.position.set(-1.955, 1.45, 0); rearTrim.rotation.y = -Math.PI / 2; boat.add(rearTrim);
   // bow railing
   const railMat = darkMat;
   for (let i = 0; i < 5; i++) {
