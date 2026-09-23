@@ -723,34 +723,9 @@ function numberPlate(text) {
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 const dynMats = {};
-function makeHullTexture() {
-  const w = 512, h = 256, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#33514e'; ctx.fillRect(0, 0, w, h);
-  const rng = mulberry32(2024);
-  for (let i = 0; i < 900; i++) {
-    const x = rng() * w, y = rng() * h, r = 2 + rng() * 14;
-    ctx.fillStyle = rng() < 0.6 ? 'rgba(18,30,28,0.25)' : 'rgba(120,150,140,0.12)';
-    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
-  }
-  for (let i = 0; i < 46; i++) {
-    const x = rng() * w, y0 = rng() * h * 0.5, len = 20 + rng() * 90;
-    const g = ctx.createLinearGradient(0, y0, 0, y0 + len);
-    g.addColorStop(0, 'rgba(140,70,30,0.55)'); g.addColorStop(1, 'rgba(140,70,30,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(x, y0, 2 + rng() * 5, len);
-  }
-  ctx.fillStyle = 'rgba(10,12,10,0.85)'; ctx.fillRect(0, h - 26, w, 26);
-  for (let i = 0; i < 120; i++) {
-    ctx.strokeStyle = 'rgba(200,210,200,0.15)'; ctx.lineWidth = 1;
-    const x = rng() * w, y = rng() * h;
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 4 + rng() * 20, y + (rng() - 0.5) * 3); ctx.stroke();
-  }
-  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
-}
 const boat = new THREE.Group();
 {
-  const hullMat = new THREE.MeshStandardMaterial({ map: makeHullTexture(), roughness: 0.7, metalness: 0.2 });
+  const hullMat = new THREE.MeshStandardMaterial({ color: 0x2e4a48, roughness: 0.65, metalness: 0.15 });
   const creamMat = new THREE.MeshStandardMaterial({ color: 0xcfc6ae, roughness: 0.7 });
   const darkMat = new THREE.MeshStandardMaterial({ color: 0x1c1a16, roughness: 0.9 });
   const glassMat = new THREE.MeshStandardMaterial({ color: 0x332a1a, emissive: 0xffb45e, emissiveIntensity: 1.4 });
@@ -781,13 +756,6 @@ const boat = new THREE.Group();
     const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.9, 5), darkMat);
     rail.rotation.z = Math.PI / 2; rail.position.set(-1.1, 2.32, s * 0.82); boat.add(rail);
   }
-  // masthead lamp on the roof
-  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.5, 6), darkMat);
-  mast.position.set(-1.1, 2.2, 0); boat.add(mast);
-  const mastLamp = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8),
-    new THREE.MeshStandardMaterial({ color: 0x665522, emissive: 0xffd98a, emissiveIntensity: 3.0 }));
-  mastLamp.position.set(-1.1, 2.5, 0); boat.add(mastLamp);
-  dynMats.mastLamp = mastLamp.material;
   // foredeck hatch + coiled rope
   const hatch = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.22, 0.8), creamMat);
   hatch.position.set(0.9, 0.72, 0); boat.add(hatch);
@@ -814,9 +782,6 @@ const boat = new THREE.Group();
   }
   const rearWin = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.45), glassMat);
   rearWin.position.set(-1.96, 1.45, 0); rearWin.rotation.y = -Math.PI / 2; boat.add(rearWin);
-  const sternLamp = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6),
-    new THREE.MeshStandardMaterial({ color: 0x330000, emissive: 0xff3020, emissiveIntensity: 2.0 }));
-  sternLamp.position.set(-2.05, 2.1, 0); boat.add(sternLamp);
   // bow railing
   const railMat = darkMat;
   for (let i = 0; i < 5; i++) {
@@ -1167,7 +1132,6 @@ function applyMode(P) {
   renderer.toneMappingExposure = P.exposure;
   lampLevel = P.lamp;
   if (dynMats.lampGlass) dynMats.lampGlass.emissiveIntensity = P.lampGlass;
-  if (dynMats.mastLamp) dynMats.mastLamp.emissiveIntensity = 0.2 + P.lampGlass;
   if (dynMats.glass) dynMats.glass.emissiveIntensity = P.lampGlass * 0.6;
   flies.visible = P.flies;
   mistBase = P.mist;
