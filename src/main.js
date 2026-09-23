@@ -27,7 +27,7 @@ function mulberry32(a) {
 
 const MOON_DIR = new THREE.Vector3(0.55, 0.42, -0.72).normalize();
 const NIGHT = {
-  fog: new THREE.Color(0x0a1418), fogDensity: 0.016,
+  fog: new THREE.Color(0x0a1418), fogDensity: 0.013,
   zenith: new THREE.Color(0x02040a), horizon: new THREE.Color(0x14303e),
   moon: new THREE.Color(0xfff3d8), moonLight: new THREE.Color(0xbfd4ff), moonI: 2.2,
   hemiSky: new THREE.Color(0x33475e), hemiGnd: new THREE.Color(0x0c0f09), hemiI: 1.0,
@@ -36,7 +36,7 @@ const NIGHT = {
   lamp: 1, lampGlass: 2.4, flies: true, mist: 0.16, bloom: 0.35, leafEm: 0.70,
 };
 const EVENING = {
-  fog: new THREE.Color(0x3a2530), fogDensity: 0.016,
+  fog: new THREE.Color(0x3a2530), fogDensity: 0.0135,
   zenith: new THREE.Color(0x1a2340), horizon: new THREE.Color(0xc96a35),
   moon: new THREE.Color(0xffe0b0), moonLight: new THREE.Color(0xffc9a0), moonI: 1.5,
   hemiSky: new THREE.Color(0x6a5a70), hemiGnd: new THREE.Color(0x241812), hemiI: 1.0,
@@ -45,7 +45,7 @@ const EVENING = {
   lamp: 1, lampGlass: 1.6, flies: true, mist: 0.18, bloom: 0.30, leafEm: 0.45,
 };
 const DAY = {
-  fog: new THREE.Color(0x9fb8be), fogDensity: 0.0085,
+  fog: new THREE.Color(0x9fb8be), fogDensity: 0.0075,
   zenith: new THREE.Color(0x2f6aa0), horizon: new THREE.Color(0xcfd8d4),
   moon: new THREE.Color(0xfff6e0), moonLight: new THREE.Color(0xfff2dd), moonI: 2.6,
   hemiSky: new THREE.Color(0x9db8cc), hemiGnd: new THREE.Color(0x3a4a3a), hemiI: 0.9,
@@ -738,7 +738,7 @@ function makeCageTexture() {
 // twin rudders in the wash. Bow points +X like the cruiser.
 function buildAirboat() {
   const g = new THREE.Group();
-  const refs = { rudders: [] };
+  const refs = { rudders: [], rpm: 0 };
   const alum = new THREE.MeshStandardMaterial({ color: 0x77716a, roughness: 0.45, metalness: 0.65 });
   const darkM = new THREE.MeshStandardMaterial({ color: 0x1c1c1e, roughness: 0.9 });
   const seatM = new THREE.MeshStandardMaterial({ color: 0x243024, roughness: 0.95 });
@@ -813,9 +813,25 @@ function buildAirboat() {
       new THREE.MeshStandardMaterial({ color: 0x3a3f45, roughness: 0.7, metalness: 0.4 }));
     rud.position.set(-3.35, 2.2, s * 0.55); g.add(rud); refs.rudders.push(rud);
   }
-  const bow = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6),
-    new THREE.MeshStandardMaterial({ color: 0x444422, emissive: 0xffe9a8, emissiveIntensity: 2.0 }));
-  bow.position.set(2.5, 1.0, 0); g.add(bow);
+  const airPole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.8, 6),
+    new THREE.MeshStandardMaterial({ color: 0x1c1a16, roughness: 0.9 }));
+  airPole.position.set(2.45, 1.0, 0); g.add(airPole);
+  const airLampMat = new THREE.MeshStandardMaterial({ color: 0x664411, emissive: 0xff9a40, emissiveIntensity: 0.9 });
+  const airLamp = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), airLampMat);
+  airLamp.position.set(2.45, 1.5, 0); g.add(airLamp);
+  // forward lens: bright from the front, invisible from behind
+  const airLensMat = new THREE.MeshStandardMaterial({ color: 0x664411, emissive: 0xffc98a, emissiveIntensity: 3.2 });
+  const airLens = new THREE.Mesh(new THREE.CircleGeometry(0.085, 16), airLensMat);
+  airLens.position.set(2.565, 1.5, 0); airLens.rotation.y = Math.PI / 2; g.add(airLens);
+  dynMats.airLens = airLensMat;
+  // rear shield: dark housing disc so the lamp never faces backward
+  const airShield = new THREE.Mesh(new THREE.CircleGeometry(0.22, 16),
+    new THREE.MeshBasicMaterial({ color: 0x11100e }));
+  airShield.position.set(2.36, 1.5, 0); airShield.rotation.y = -Math.PI / 2; g.add(airShield);
+  const airCap = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.16, 8),
+    new THREE.MeshStandardMaterial({ color: 0x1c1a16, roughness: 0.9 }));
+  airCap.position.set(2.45, 1.68, 0); g.add(airCap);
+  dynMats.airLamp = airLampMat;
   return { group: g, refs };
 }
 const boat = new THREE.Group();
@@ -934,7 +950,11 @@ while (boat.children.length) cruiser.add(boat.children[0]);
 boat.add(cruiser);
 const airboat = buildAirboat();
 airboat.group.visible = false;
+airboat.group.scale.setScalar(0.85);
 boat.add(airboat.group);
+// headlight + target were built with the cruiser: lift them to the shared root
+boat.add(dynMats.headSpot);
+boat.add(dynMats.headSpot.target);
 function toggleBoat() {
   airboatMode = !airboatMode;
   cruiser.visible = !airboatMode;
@@ -1246,6 +1266,8 @@ function applyMode(P) {
   renderer.toneMappingExposure = P.exposure;
   lampLevel = P.lamp;
   if (dynMats.lampGlass) dynMats.lampGlass.emissiveIntensity = P.lampGlass;
+  if (dynMats.airLamp) dynMats.airLamp.emissiveIntensity = P.lampGlass * 0.4;
+  if (dynMats.airLens) dynMats.airLens.emissiveIntensity = P.lampGlass * 1.3;
   if (dynMats.glass) dynMats.glass.emissiveIntensity = P.lampGlass * 0.6;
   flies.visible = P.flies;
   mistBase = P.mist;
@@ -1324,16 +1346,20 @@ function animate() {
   boat.rotation.z = Math.sin(t * 0.9) * 0.02 - state.turn * sf * 0.05;
   boat.rotation.x = Math.sin(t * 0.7) * 0.015;
 
-  lantern.position.set(state.x + Math.cos(state.heading) * 1.9, 1.9, state.z + Math.sin(state.heading) * 1.9);
+  const bowOff = airboatMode ? 5.0 : 1.9;
+  lantern.position.set(state.x + Math.cos(state.heading) * bowOff, 1.9, state.z + Math.sin(state.heading) * bowOff);
   lantern.intensity = 28 * lampLevel * (1 + Math.sin(t * 11) * 0.06 + Math.sin(t * 23) * 0.04);
   stern.position.set(state.x - Math.cos(state.heading) * 1.1, 1.6, state.z - Math.sin(state.heading) * 1.1);
   stern.intensity = 8 * lampLevel * (1 + Math.sin(t * 9.3 + 2.0) * 0.08);
   if (dynMats.headSpot) dynMats.headSpot.intensity = 750 * lampLevel * (1 + Math.sin(t * 13.7) * 0.03);
   if (airboatMode) {
     const thr = fwd ? 1 : back ? 0.4 : 0.08;
-    airboat.refs.prop.rotation.x += (2 + thr * 42) * dt;
-    for (const r of airboat.refs.rudders) r.rotation.y = -state.turn * 0.55;
-    airboat.refs.disc.opacity = 0.04 + thr * 0.20;
+    const rr = airboat.refs;
+    const target = 2 + thr * 44;
+    rr.rpm += (target - rr.rpm) * Math.min(1, dt * (target > rr.rpm ? 0.9 : 0.55));
+    rr.prop.rotation.x += rr.rpm * dt;
+    for (const r of rr.rudders) r.rotation.y = -state.turn * 0.55;
+    rr.disc.opacity = 0.02 + (rr.rpm / 46) * 0.22;
     boat.rotation.x += THREE.MathUtils.clamp(Math.abs(state.speed) / BOAT_AIR.top, 0, 1) * 0.045;
   }
 
