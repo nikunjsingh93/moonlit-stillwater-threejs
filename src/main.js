@@ -8,6 +8,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+
 // ================= endless channel: pure functions of x, valid everywhere =================
 function channelCenter(x) {
   return 7.5 * Math.sin(x * 0.042) + 4.0 * Math.sin(x * 0.017 + 1.3)
@@ -1331,9 +1335,9 @@ addEventListener('keyup', (e) => keys.delete(e.code));
 const orbit = { yaw: Math.PI, pitch: 0.30, drag: false, lx: 0, ly: 0 };
 let camIdle = 100, cabin = false;
 addEventListener('pointerdown', (e) => {
-  if (e.target.id !== 'eveningBtn' && e.target.id !== 'muteBtn' && e.target.id !== 'cabinBtn') {
-    orbit.drag = true; orbit.lx = e.clientX; orbit.ly = e.clientY;
-  }
+  const t = e.target;
+  if (!(t instanceof HTMLElement) || t.closest('#btns,#touch')) { /* UI control: no orbit */ }
+  else { orbit.drag = true; orbit.lx = e.clientX; orbit.ly = e.clientY; }
   MotorAudio.init();
 });
 addEventListener('pointerup', () => orbit.drag = false);
@@ -1386,6 +1390,17 @@ function toggleCabin() {
 cabinBtn.onclick = (e) => { e.stopPropagation(); MotorAudio.init(); toggleCabin(); };
 const boatBtn = document.getElementById('boatBtn');
 boatBtn.onclick = (e) => { e.stopPropagation(); MotorAudio.init(); toggleBoat(); };
+// touch controls: hold-to-steer/throttle for phones and tablets
+for (const [id, code] of [['tLeft', 'ArrowLeft'], ['tRight', 'ArrowRight'], ['tGas', 'ArrowUp'], ['tBrake', 'ArrowDown']]) {
+  const el = document.getElementById(id);
+  const on = (e) => { e.preventDefault(); keys.add(code); };
+  const off = () => keys.delete(code);
+  el.addEventListener('pointerdown', on);
+  el.addEventListener('pointerup', off);
+  el.addEventListener('pointercancel', off);
+  el.addEventListener('pointerleave', off);
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+}
 function toggleMute() {
   MotorAudio.init();
   MotorAudio.setMuted(!MotorAudio.muted);

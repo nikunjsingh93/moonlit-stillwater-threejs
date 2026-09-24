@@ -16,4 +16,11 @@ html,body{margin:0;height:100%;overflow:hidden;background:#060a0d;font-family:Ge
  font-family:system-ui,sans-serif;font-size:12px;letter-spacing:.1em;padding:8px 14px;border-radius:20px;cursor:pointer}
 #btns button:hover{background:rgba(40,60,70,.7)}
 #cabinBtn.on{background:rgba(60,120,130,.7);border-color:#9fe0e0}
+#touch{display:none;position:absolute;left:0;right:0;bottom:64px;justify-content:space-between;
+ padding:0 18px;pointer-events:none}
+#touch .tgroup{display:flex;gap:14px;pointer-events:auto}
+#touch button{width:68px;height:68px;border-radius:50%;font-size:22px;color:#dff0f5;
+ background:rgba(10,22,28,.45);border:1px solid rgba(150,190,210,.4);touch-action:none}
+#touch button:active{background:rgba(80,140,150,.55)}
+@media (pointer:coarse){#touch{display:flex}#hint{display:none}}
 #eveningBtn.on{background:rgba(120,70,30,.7);border-color:#ffb36b}

@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#060a0d" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
 <title>Moonlit Stillwater — Swamp Boat Ride</title>
 <link rel="stylesheet" href="/src/style.css" />
 </head>
@@ -12,6 +18,10 @@
   <div id="hint">W/S throttle &middot; A/D steer &middot; C cabin &middot; V boat &middot; drag to look &middot; R reset &middot; click for sound</div>
   <div id="loc"><div id="locKicker">EXPLORING MOONLIT STILLWATER</div><div id="locName">Cypress Cathedral</div></div>
   <div id="btns"><button id="muteBtn">mute</button><button id="cabinBtn">cabin</button><button id="boatBtn">airboat</button><button id="eveningBtn">night mode</button></div>
+  <div id="touch">
+    <div class="tgroup"><button id="tLeft">&#9664;</button><button id="tRight">&#9654;</button></div>
+    <div class="tgroup"><button id="tBrake">&#9660;</button><button id="tGas">&#9650;</button></div>
+  </div>
 </div>
 <canvas id="scene"></canvas>
 <script type="module" src="/src/main.js"></script>
