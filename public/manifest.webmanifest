@@ -4,7 +4,7 @@
   "description": "Drift a boat through a moonlit cypress swamp. Three.js, works offline.",
   "start_url": ".",
   "scope": ".",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#060a0d",
   "theme_color": "#060a0d",

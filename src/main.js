@@ -1252,7 +1252,7 @@ composer.addPass(new OutputPass());
 // ================= steady outboard audio: no wobble, stays on while held =================
 const MotorAudio = {
   ctx: null, master: null, motorGain: null, motorOsc1: null, motorOsc2: null,
-  washGain: null, muted: false, bright: false, throttle: 0, audioAcc: 0, nextCroak: 0, nextChirp: 0,
+  washGain: null, muted: false, bright: false, throttle: 0, audioAcc: 0, nextChirp: 0,
   init() {
     if (this.ctx) return;
     try {
@@ -1277,17 +1277,8 @@ const MotorAudio = {
       const ng = ctx.createGain(); ng.gain.value = 0.015;
       n.connect(nf); nf.connect(ng); ng.connect(master); n.start();
       this.washGain = ng;
-      this.nextCroak = ctx.currentTime + 2; this.nextChirp = ctx.currentTime + 4;
+      this.nextChirp = ctx.currentTime + 4;
     } catch (e) { /* no audio */ }
-  },
-  croak(t) {
-    const ctx = this.ctx;
-    const o = ctx.createOscillator(); o.type = 'square';
-    o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(65, t + 0.22);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.045, t + 0.03);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
-    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + 0.35);
   },
   chirp(t) {
     const ctx = this.ctx;
@@ -1312,7 +1303,6 @@ const MotorAudio = {
       this.motorGain.gain.setTargetAtTime(0.012 + throttle * 0.075, tc, throttle > 0.02 ? 0.3 : 0.8);
       this.washGain.gain.setTargetAtTime(0.012 + speed01 * 0.05, tc, 0.4);
     }
-    if (t > this.nextCroak) { this.croak(t); this.nextCroak = t + 2.5 + Math.random() * 4; }
     if (t > this.nextChirp) { this.chirp(t); this.nextChirp = t + 4 + Math.random() * 5; }
   },
   setMuted(m) {
@@ -1392,6 +1382,18 @@ function toggleCabin() {
 cabinBtn.onclick = (e) => { e.stopPropagation(); MotorAudio.init(); toggleCabin(); };
 const boatBtn = document.getElementById('boatBtn');
 boatBtn.onclick = (e) => { e.stopPropagation(); MotorAudio.init(); toggleBoat(); };
+const fsBtn = document.getElementById('fsBtn');
+if (!document.fullscreenEnabled) {
+  document.getElementById('fsRow').style.display = 'none';
+} else {
+  const syncFs = () => { fsBtn.textContent = document.fullscreen ? 'exit' : 'full'; };
+  document.addEventListener('fullscreenchange', syncFs); syncFs();
+  fsBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (document.fullscreen) document.exitFullscreen().catch(() => {});
+    else document.documentElement.requestFullscreen().catch(() => {});
+  };
+}
 const menuBtn = document.getElementById('menuBtn');
 const menu = document.getElementById('menu');
 menuBtn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle('open'); };
