@@ -189,10 +189,10 @@ const waterMat = new THREE.ShaderMaterial({
     '  float ls = max(dot(R,Ld),0.0);',
     '  col += vec3(1.0,0.87,0.64)*(pow(ls,500.0)*2.5+pow(ls,60.0)*0.25)*latt;',
     '  col += vec3(0.35,0.28,0.18)*max(dot(N,Ld),0.0)*latt*0.35;',
-    '  col += vec3(0.10,0.16,0.14)*max(rings,0.0)*uSpeed;',
-    '  col += vec3(0.17,0.25,0.22)*trailMask*(0.30+0.70*churn);',
+    '  col += vec3(0.06,0.10,0.09)*max(rings,0.0)*uSpeed;',
+    '  col += vec3(0.10,0.15,0.13)*trailMask*(0.30+0.70*churn);',
     '  float bowD = length(uv-(uBoat+uBoatDir*2.6));',
-    '  col += vec3(0.12,0.17,0.15)*exp(-bowD*1.4)*uSpeed;',
+    '  col += vec3(0.08,0.11,0.10)*exp(-bowD*1.4)*uSpeed;',
     '  for (int i = 0; i < 5; i++) {',
     '    float fi = float(i);',
     '    vec2 fp = uBoat + vec2(10.0+fi*8.0+sin(t*0.10+fi*2.1)*26.0, cos(t*0.083+fi*1.7)*8.0);',
@@ -294,6 +294,7 @@ const bloomMat = new THREE.MeshStandardMaterial({
 });
 const groundMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 });
 const lilyMat = new THREE.MeshStandardMaterial({ color: 0x1d3327, roughness: 0.9 });
+const critterMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
 
 function paint(geo, hex, jitter, rng) {
   const c = new THREE.Color(hex);
@@ -316,13 +317,13 @@ const UP = new THREE.Vector3(0, 1, 0);
 // Builds one tree in local coords (base at origin). Returns {wood[], leaves[]}.
 function buildTree(rng) {
   const wood = [], leaves = [];
-  const s = 0.9 + rng() * 0.9;
-  const h = (7 + rng() * 4) * s;
-  const trunk = new THREE.CylinderGeometry(0.30 * s, 0.85 * s, h, 7);
+  const s = 0.9 + rng() * 0.7;
+  const h = (5.5 + rng() * 3) * s;
+  const trunk = new THREE.CylinderGeometry(0.22 * s, 0.55 * s, h, 7);
   trunk.translate(0, h / 2, 0);
   paint(trunk, 0x2e2318, 0.35, rng); wood.push(trunk);
-  const flare = new THREE.ConeGeometry(1.25 * s, 2.4 * s, 7);
-  flare.translate(0, 1.1 * s, 0);
+  const flare = new THREE.ConeGeometry(0.9 * s, 1.8 * s, 7);
+  flare.translate(0, 0.85 * s, 0);
   paint(flare, 0x241b12, 0.35, rng); wood.push(flare);
   const anchors = [];
   const nb = 5 + Math.floor(rng() * 3);
@@ -331,7 +332,7 @@ function buildTree(rng) {
     const tilt = 0.55 + rng() * 0.55;
     const len = (2.6 + rng() * 2.2) * s;
     const dir = new THREE.Vector3(Math.cos(az) * tilt, 1, Math.sin(az) * tilt).normalize();
-    const base = new THREE.Vector3(Math.cos(az) * 0.3 * s, h * (0.55 + rng() * 0.35), Math.sin(az) * 0.3 * s);
+    const base = new THREE.Vector3(Math.cos(az) * 0.3 * s, h * (0.45 + rng() * 0.35), Math.sin(az) * 0.3 * s);
     const g = new THREE.CylinderGeometry(0.05 * s, 0.15 * s, len, 5);
     g.translate(0, len / 2, 0);
     const q = new THREE.Quaternion().setFromUnitVectors(UP, dir);
@@ -351,6 +352,8 @@ function buildTree(rng) {
   }
   anchors.push(new THREE.Vector3(0, h * 1.02, 0));
   anchors.push(new THREE.Vector3(0.6 * s, h * 0.92, 0.3 * s));
+  anchors.push(new THREE.Vector3((rng() - 0.5) * 3 * s, h * 0.62, (rng() - 0.5) * 3 * s));
+  anchors.push(new THREE.Vector3((rng() - 0.5) * 3.5 * s, h * 0.72, (rng() - 0.5) * 3.5 * s));
   for (const a of anchors) {
     const w = (2.4 + rng() * 2.2) * s, hh = (1.6 + rng() * 1.4) * s;
     for (let k = 0; k < 2; k++) {
@@ -363,6 +366,44 @@ function buildTree(rng) {
   return { wood, leaves, anchors };
 }
 
+function buildTurtle(rng) {
+  const geos = [];
+  const shell = new THREE.SphereGeometry(0.32, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+  shell.scale(1.15, 0.55, 1);
+  paint(shell, 0x2e3620, 0.3, rng); geos.push(shell);
+  const rim = new THREE.TorusGeometry(0.33, 0.05, 5, 12);
+  rim.rotateX(Math.PI / 2); rim.scale(1.15, 1, 1);
+  paint(rim, 0x4a5230, 0.3, rng); geos.push(rim);
+  const head = new THREE.SphereGeometry(0.09, 6, 5);
+  head.translate(0.42, 0.08, 0);
+  paint(head, 0x3a4226, 0.3, rng); geos.push(head);
+  for (const fp of [[0.2, 0.25], [0.2, -0.25], [-0.2, 0.28], [-0.2, -0.28]]) {
+    const f = new THREE.BoxGeometry(0.16, 0.06, 0.12);
+    f.translate(fp[0], 0.0, fp[1]);
+    paint(f, 0x333b22, 0.3, rng); geos.push(f);
+  }
+  return geos;
+}
+function buildHeron(rng) {
+  const geos = [];
+  for (const s of [-1, 1]) {
+    const leg = new THREE.CylinderGeometry(0.02, 0.02, 0.8, 4);
+    leg.translate(s * 0.07, 0.4, 0);
+    paint(leg, 0x222222, 0.2, rng); geos.push(leg);
+  }
+  const body = new THREE.CylinderGeometry(0.09, 0.14, 0.55, 7);
+  body.rotateX(Math.PI / 2 - 0.25); body.translate(0, 0.88, 0.05);
+  paint(body, 0x8a8f96, 0.25, rng); geos.push(body);
+  const neck = new THREE.CylinderGeometry(0.035, 0.05, 0.5, 5);
+  neck.rotateX(-0.5); neck.translate(0, 1.15, 0.28);
+  paint(neck, 0x8a8f96, 0.2, rng); geos.push(neck);
+  const h = new THREE.SphereGeometry(0.07, 6, 5);
+  h.translate(0, 1.32, 0.42); paint(h, 0x8a8f96, 0.2, rng); geos.push(h);
+  const beak = new THREE.ConeGeometry(0.025, 0.28, 5);
+  beak.rotateX(Math.PI / 2 + 0.15); beak.translate(0, 1.30, 0.60);
+  paint(beak, 0xc8a83a, 0.2, rng); geos.push(beak);
+  return geos;
+}
 function buildGatorFallback() {
   const grp = new THREE.Group();
   const skinMat = new THREE.MeshStandardMaterial({ color: 0x27331f, roughness: 0.85 });
@@ -449,7 +490,7 @@ function buildSegment(idx) {
     if (Math.hypot(x + 60, z - channelCenter(-60)) < 11) return; // keep spawn view open
     const y = bankHeight(x, z) - 0.2;
     E.set(0, rng() * Math.PI * 2, 0); Q.setFromEuler(E);
-    const sc = 0.85 + rng() * 0.8;
+    const sc = 0.8 + rng() * 0.5;
     M.compose(PV.set(x, y, z), Q, SV.set(sc, sc, sc));
     const t = buildTree(rng);
     for (const g of t.wood) { const c = g.clone(); c.applyMatrix4(M); if (dim) darken(c, 0.55); woodGeos.push(c); }
@@ -485,7 +526,7 @@ function buildSegment(idx) {
     plantTree(x, channelCenter(x) + side * (channelHalf(x) + 22 + rng() * 20), true);
   }
   // gap-filler canopy: wide mid-distance masses closing sightlines between trunks
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 28; i++) {
     const x = cx + (rng() - 0.5) * (SEG + 10);
     const side = rng() > 0.5 ? 1 : -1;
     const z = channelCenter(x) + side * (channelHalf(x) + 13 + rng() * 20);
@@ -516,10 +557,10 @@ function buildSegment(idx) {
     }
   }
   // bushes: low wide leaf clusters filling gaps between trunks
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 100; i++) {
     const x = cx + (rng() - 0.5) * SEG;
     const side = rng() > 0.5 ? 1 : -1;
-    const z = channelCenter(x) + side * (channelHalf(x) + rng() * 14);
+    const z = channelCenter(x) + side * (channelHalf(x) + rng() * 26);
     const y = bankHeight(x, z);
     const w = 1.4 + rng() * 1.6, hh = 0.9 + rng() * 0.9;
     for (let k = 0; k < 3; k++) {
@@ -587,10 +628,10 @@ function buildSegment(idx) {
       paint(p, 0x223626, 0.5, rng); leafGeos.push(p);
     }
   }
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 30; i++) {
     const x = cx + (rng() - 0.5) * SEG;
     const side = rng() > 0.5 ? 1 : -1;
-    const z = channelCenter(x) + side * (channelHalf(x) + 10 + rng() * 14);
+    const z = channelCenter(x) + side * (channelHalf(x) + 8 + rng() * 22);
     const y = bankHeight(x, z);
     for (let k = 0; k < 3; k++) {
       const p = new THREE.PlaneGeometry(1.5 + rng(), 1.0 + rng() * 0.6);
@@ -641,6 +682,27 @@ function buildSegment(idx) {
   if (woodGeos.length) grp.add(new THREE.Mesh(mergeGeometries(woodGeos, false), woodMat));
   if (leafGeos.length) grp.add(new THREE.Mesh(mergeGeometries(leafGeos, false), leafMat));
   if (mossGeos.length) grp.add(new THREE.Mesh(mergeGeometries(mossGeos, false), mossMat));
+  // turtles basking + herons stalking the shallows
+  const critterGeos = [];
+  for (let i = 0; i < 5; i++) {
+    const x = cx + (rng() - 0.5) * SEG;
+    const side = rng() > 0.5 ? 1 : -1;
+    const z = channelCenter(x) + side * (channelHalf(x) - 0.5 + rng() * 2.5);
+    const y = Math.max(bankHeight(x, z), 0.0) + 0.06;
+    E.set(0, rng() * Math.PI * 2, 0); Q.setFromEuler(E);
+    M.compose(PV.set(x, y, z), Q, SV.setScalar(0.8 + rng() * 0.5));
+    for (const g of buildTurtle(rng)) { const c = g.clone(); c.applyMatrix4(M); critterGeos.push(c); }
+  }
+  if (rng() < 0.55) {
+    const x = cx + (rng() - 0.5) * SEG;
+    const side = rng() > 0.5 ? 1 : -1;
+    const z = channelCenter(x) + side * (channelHalf(x) - 2 + rng() * 3);
+    const y = Math.max(bankHeight(x, z), -0.15);
+    E.set(0, rng() * Math.PI * 2, 0); Q.setFromEuler(E);
+    M.compose(PV.set(x, y, z), Q, SV.setScalar(0.9 + rng() * 0.4));
+    for (const g of buildHeron(rng)) { const c = g.clone(); c.applyMatrix4(M); critterGeos.push(c); }
+  }
+  if (critterGeos.length) grp.add(new THREE.Mesh(mergeGeometries(critterGeos, false), critterMat));
   // lily pads + lotus blossoms on the water
   const padGeos = [], bloomGeos = [];
   for (let i = 0; i < 60; i++) {
