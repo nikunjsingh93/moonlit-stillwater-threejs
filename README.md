@@ -1,4 +1,4 @@
-# Moonlit Stillwater — fresh build (does NOT touch moonlit-swamp)
+# Moonlit Stillwater
 
 **Play the game: https://nikunjsingh93.github.io/moonlit-stillwater-threejs/**
 
