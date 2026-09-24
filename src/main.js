@@ -1337,11 +1337,12 @@ const orbit = { yaw: Math.PI, pitch: 0.30, drag: false, lx: 0, ly: 0 };
 let camIdle = 100, cabin = false;
 addEventListener('pointerdown', (e) => {
   const t = e.target;
-  if (!(t instanceof HTMLElement) || t.closest('#btns,#touch')) { /* UI control: no orbit */ }
+  if (!(t instanceof HTMLElement) || t.closest('#btns,#touch,#menu')) { /* UI control: no orbit */ }
   else { orbit.drag = true; orbit.lx = e.clientX; orbit.ly = e.clientY; }
   MotorAudio.init();
 });
 addEventListener('pointerup', () => orbit.drag = false);
+addEventListener('pointercancel', () => orbit.drag = false);
 addEventListener('pointermove', (e) => {
   if (!orbit.drag) return;
   camIdle = 0;
@@ -1391,6 +1392,13 @@ function toggleCabin() {
 cabinBtn.onclick = (e) => { e.stopPropagation(); MotorAudio.init(); toggleCabin(); };
 const boatBtn = document.getElementById('boatBtn');
 boatBtn.onclick = (e) => { e.stopPropagation(); MotorAudio.init(); toggleBoat(); };
+const menuBtn = document.getElementById('menuBtn');
+const menu = document.getElementById('menu');
+menuBtn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle('open'); };
+document.addEventListener('click', (e) => {
+  const t = e.target;
+  if (menu.classList.contains('open') && t instanceof HTMLElement && !t.closest('#menu,#menuBtn')) menu.classList.remove('open');
+});
 // touch controls: hold-to-steer/throttle for phones and tablets
 for (const [id, code] of [['tLeft', 'ArrowLeft'], ['tRight', 'ArrowRight'], ['tGas', 'ArrowUp'], ['tBrake', 'ArrowDown']]) {
   const el = document.getElementById(id);
