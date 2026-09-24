@@ -1,5 +1,7 @@
 # Moonlit Stillwater — fresh build (does NOT touch moonlit-swamp)
 
+**Play the game: https://nikunjsingh93.github.io/moonlit-stillwater-threejs/**
+
 Real-time Three.js swamp boat ride: moonlit water shader, procedural skiff with
 flickering lantern, instanced cypress/reeds/lilies, fireflies, drifting mist,
 bloom + vignette, WASD steering, evening-mode toggle.
