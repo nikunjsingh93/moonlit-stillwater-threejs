@@ -461,7 +461,8 @@ function buildGator() {
 }
 
 // ================= endless segments: ground + forest baked per chunk =================
-const SEG = 60, SEG_W = 220, RADIUS = 6;
+const SEG = 60, SEG_W = 220;
+let RADIUS = 6;
 const segQueue = [];
 const segCache = new Map();
 function buildSegment(idx) {
@@ -1412,7 +1413,34 @@ const PLACES = ['Cypress Cathedral', 'Heron Pond', 'Firefly Hollow', 'Mirror Rea
 const locName = document.getElementById('locName');
 
 // ================= main loop =================
+const QUALITY = {
+  ultra: { pr: 1.5, refl: 0.5, bloom: true, reflEvery: 1, radius: 6 },
+  high: { pr: 1.25, refl: 0.34, bloom: true, reflEvery: 1, radius: 5 },
+  medium: { pr: 1.0, refl: 0.25, bloom: false, reflEvery: 1, radius: 4 },
+  low: { pr: 0.85, refl: 0.22, bloom: false, reflEvery: 2, radius: 3 },
+};
+let Q = QUALITY.ultra, frameNo = 0;
+function applyQuality(name) {
+  Q = QUALITY[name] || QUALITY.ultra;
+  try { localStorage.setItem('sw-quality', name); } catch (e) {}
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, Q.pr));
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+  reflectionRT.setSize(Math.max(320, Math.floor(innerWidth * Q.refl)), Math.max(180, Math.floor(innerHeight * Q.refl)));
+  bloom.enabled = Q.bloom;
+  RADIUS = Q.radius;
+  updateSegments(state.x);
+  const qs = document.getElementById('quality');
+  if (qs) qs.value = name;
+}
 updateSegments(state.x);
+{
+  let savedQ = null;
+  try { savedQ = localStorage.getItem('sw-quality'); } catch (e) {}
+  if (!savedQ || !QUALITY[savedQ]) savedQ = matchMedia('(pointer:coarse)').matches ? 'high' : 'ultra';
+  applyQuality(savedQ);
+  document.getElementById('quality').onchange = (e) => applyQuality(e.target.value);
+}
 const clock = new THREE.Clock();
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
 function animate() {
@@ -1567,13 +1595,14 @@ function animate() {
   MotorAudio.throttle = throttle;
   MotorAudio.update(dt, throttle, speed01);
   locName.textContent = PLACES[Math.floor(state.dist / 160) % PLACES.length];
-  updateReflection();
+  if ((frameNo++ % Q.reflEvery) === 0) updateReflection();
   composer.render();
 }
 animate();
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, Q.pr));
   renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
-  reflectionRT.setSize(Math.max(320, Math.floor(innerWidth / 2)), Math.max(180, Math.floor(innerHeight / 2)));
+  reflectionRT.setSize(Math.max(320, Math.floor(innerWidth * Q.refl)), Math.max(180, Math.floor(innerHeight * Q.refl)));
 });

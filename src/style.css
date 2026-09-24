@@ -17,10 +17,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:#060a0d;font-family:Ge
 #btns button:hover{background:rgba(40,60,70,.7)}
 #cabinBtn.on{background:rgba(60,120,130,.7);border-color:#9fe0e0}
 #touch{display:none;position:absolute;left:0;right:0;bottom:64px;justify-content:space-between;
- padding:0 18px;pointer-events:none}
+ padding:0 18px;pointer-events:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #touch .tgroup{display:flex;gap:14px;pointer-events:auto}
-#touch button{width:68px;height:68px;border-radius:50%;font-size:22px;color:#dff0f5;
- background:rgba(10,22,28,.45);border:1px solid rgba(150,190,210,.4);touch-action:none}
+#touch button{width:68px;height:68px;border-radius:50%;color:#dff0f5;display:flex;align-items:center;justify-content:center;
+ background:rgba(10,22,28,.45);border:1px solid rgba(150,190,210,.4);touch-action:none;
+ user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 #touch button:active{background:rgba(80,140,150,.55)}
+#touch svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+#btns select{background:rgba(10,20,26,.6);border:1px solid rgba(150,190,210,.3);color:#cfe3ee;
+ font-family:system-ui,sans-serif;font-size:12px;letter-spacing:.1em;padding:8px 10px;border-radius:20px;cursor:pointer}
 @media (pointer:coarse){#touch{display:flex}#hint{display:none}}
 #eveningBtn.on{background:rgba(120,70,30,.7);border-color:#ffb36b}

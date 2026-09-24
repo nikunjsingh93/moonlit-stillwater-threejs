@@ -17,10 +17,16 @@
   <div id="brand">MOONLIT STILLWATER</div>
   <div id="hint">W/S throttle &middot; A/D steer &middot; C cabin &middot; V boat &middot; drag to look &middot; R reset &middot; click for sound</div>
   <div id="loc"><div id="locKicker">EXPLORING MOONLIT STILLWATER</div><div id="locName">Cypress Cathedral</div></div>
-  <div id="btns"><button id="muteBtn">mute</button><button id="cabinBtn">cabin</button><button id="boatBtn">airboat</button><button id="eveningBtn">night mode</button></div>
+  <div id="btns"><button id="muteBtn">mute</button><button id="cabinBtn">cabin</button><button id="boatBtn">airboat</button><button id="eveningBtn">night mode</button><select id="quality" aria-label="graphics quality"><option value="ultra">ultra</option><option value="high">high</option><option value="medium">medium</option><option value="low">low</option></select></div>
   <div id="touch">
-    <div class="tgroup"><button id="tLeft">&#9664;</button><button id="tRight">&#9654;</button></div>
-    <div class="tgroup"><button id="tBrake">&#9660;</button><button id="tGas">&#9650;</button></div>
+    <div class="tgroup">
+      <button id="tLeft" aria-label="steer left"><svg viewBox="0 0 24 24"><path d="M15 5 L8 12 L15 19"/></svg></button>
+      <button id="tRight" aria-label="steer right"><svg viewBox="0 0 24 24"><path d="M9 5 L16 12 L9 19"/></svg></button>
+    </div>
+    <div class="tgroup">
+      <button id="tBrake" aria-label="brake"><svg viewBox="0 0 24 24"><path d="M5 9 L12 16 L19 9"/></svg></button>
+      <button id="tGas" aria-label="throttle"><svg viewBox="0 0 24 24"><path d="M5 15 L12 8 L19 15"/></svg></button>
+    </div>
   </div>
 </div>
 <canvas id="scene"></canvas>
